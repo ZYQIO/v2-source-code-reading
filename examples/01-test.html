@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- <div id="app">{{ counter }}</div> -->
+    <div id="app2">
+      <div>{{ age }}</div>
+    </div>
+    <script src="./vue.js"></script>
+
+    <script>
+      new Vue({
+        data() {
+          return {
+            counter: 1,
+            age: 18
+          }
+        },
+        template: `<div>18</div>`
+      }).$mount('#app2')
+    </script>
+  </body>
+</html>
