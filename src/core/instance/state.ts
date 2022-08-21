@@ -51,19 +51,25 @@ export function proxy(target: Object, sourceKey: string, key: string) {
 
 export function initState(vm: Component) {
   const opts = vm.$options
+  // 初始化属性
   if (opts.props) initProps(vm, opts.props)
 
-  // Composition API
+  // Composition API 的支持
+  // 初始化 setup
   initSetup(vm)
 
+  // 初始化methods
   if (opts.methods) initMethods(vm, opts.methods)
+  // 初始化data选项
   if (opts.data) {
     initData(vm)
   } else {
     const ob = observe((vm._data = {}))
     ob && ob.vmCount++
   }
+  // 初始化计算属性
   if (opts.computed) initComputed(vm, opts.computed)
+  // 初始化watch选项
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
   }
@@ -99,9 +105,9 @@ function initProps(vm: Component, propsOptions: Object) {
         if (!isRoot && !isUpdatingChildComponent) {
           warn(
             `Avoid mutating a prop directly since the value will be ` +
-              `overwritten whenever the parent component re-renders. ` +
-              `Instead, use a data or computed property based on the prop's ` +
-              `value. Prop being mutated: "${key}"`,
+            `overwritten whenever the parent component re-renders. ` +
+            `Instead, use a data or computed property based on the prop's ` +
+            `value. Prop being mutated: "${key}"`,
             vm
           )
         }
@@ -120,18 +126,21 @@ function initProps(vm: Component, propsOptions: Object) {
 }
 
 function initData(vm: Component) {
+  // 获取用户设置的data选项
   let data: any = vm.$options.data
+  // 是否是一个函数
   data = vm._data = isFunction(data) ? getData(data, vm) : data || {}
   if (!isPlainObject(data)) {
     data = {}
     __DEV__ &&
       warn(
         'data functions should return an object:\n' +
-          'https://vuejs.org/v2/guide/components.html#data-Must-Be-a-Function',
+        'https://vuejs.org/v2/guide/components.html#data-Must-Be-a-Function',
         vm
       )
   }
   // proxy data on instance
+  // 校验, 避免和props冲突
   const keys = Object.keys(data)
   const props = vm.$options.props
   const methods = vm.$options.methods
@@ -147,7 +156,7 @@ function initData(vm: Component) {
       __DEV__ &&
         warn(
           `The data property "${key}" is already declared as a prop. ` +
-            `Use prop default value instead.`,
+          `Use prop default value instead.`,
           vm
         )
     } else if (!isReserved(key)) {
@@ -155,6 +164,7 @@ function initData(vm: Component) {
     }
   }
   // observe data
+  // 遍历递归data, 响应式处理
   const ob = observe(data)
   ob && ob.vmCount++
 }
@@ -283,9 +293,9 @@ function initMethods(vm: Component, methods: Object) {
       if (typeof methods[key] !== 'function') {
         warn(
           `Method "${key}" has type "${typeof methods[
-            key
+          key
           ]}" in the component definition. ` +
-            `Did you reference the function correctly?`,
+          `Did you reference the function correctly?`,
           vm
         )
       }
@@ -295,7 +305,7 @@ function initMethods(vm: Component, methods: Object) {
       if (key in vm && isReserved(key)) {
         warn(
           `Method "${key}" conflicts with an existing Vue instance method. ` +
-            `Avoid defining component methods that start with _ or $.`
+          `Avoid defining component methods that start with _ or $.`
         )
       }
     }
@@ -348,7 +358,7 @@ export function stateMixin(Vue: typeof Component) {
     dataDef.set = function () {
       warn(
         'Avoid replacing instance root $data. ' +
-          'Use nested data properties instead.',
+        'Use nested data properties instead.',
         this
       )
     }

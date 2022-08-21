@@ -7,22 +7,33 @@
     <title>Document</title>
   </head>
   <body>
-    <!-- <div id="app">{{ counter }}</div> -->
-    <div id="app2">
-      <div>{{ age }}</div>
-    </div>
+    <div id="app"></div>
     <script src="./vue.js"></script>
 
     <script>
       new Vue({
         data() {
           return {
-            counter: 1,
-            age: 18
+            foo: 'foo'
           }
         },
-        template: `<div>18</div>`
-      }).$mount('#app2')
+        created() {
+          console.log('created')
+          setTimeout(() => {
+            this.foo = 'bar'
+          }, 1000)
+        },
+        render() {
+          return document.createTextNode(this.foo)
+        }
+      }).$mount('#app')
+
+      const obj = { foo: { bar: 'bar' } }
+
+      defineReactive(obj, 'foo', obj['foo'])
+
+      // // obj.foo.bar
+      // console.log(obj.foo.bar)
     </script>
   </body>
 </html>

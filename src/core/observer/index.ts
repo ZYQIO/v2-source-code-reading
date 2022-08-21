@@ -50,16 +50,20 @@ export class Observer {
   dep: Dep
   vmCount: number // number of vms that have this object as root $data
 
+  // 参数1: 要做响应式处理的对象
   constructor(public value: any, public shallow = false, public mock = false) {
     // this.value = value
     this.dep = mock ? mockDep : new Dep()
     this.vmCount = 0
+    // 定义 __ob__ 属性
     def(value, '__ob__', this)
+    // 判断当前对象是普通对象还是数组
     if (isArray(value)) {
       if (!mock) {
+        // 数组响应式处理
         if (hasProto) {
           /* eslint-disable no-proto */
-          ;(value as any).__proto__ = arrayMethods
+          ; (value as any).__proto__ = arrayMethods
           /* eslint-enable no-proto */
         } else {
           for (let i = 0, l = arrayKeys.length; i < l; i++) {
@@ -77,9 +81,13 @@ export class Observer {
        * getter/setters. This method should only be called when
        * value type is Object.
        */
+      // 对象响应式
+      // 获取所有 key
       const keys = Object.keys(value)
+      // 遍历它们, 对每一个 key 进行响应式处理
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i]
+        // 定义响应式, 每次只能处理一个属性, 
         defineReactive(value, key, NO_INIITIAL_VALUE, undefined, shallow, mock)
       }
     }
@@ -110,7 +118,10 @@ export function observe(
   if (!isObject(value) || isRef(value) || value instanceof VNode) {
     return
   }
+  // 创建了一个 Ovserver 实例
+  // 这个实例是干什么的 ?
   let ob: Observer | void
+  // 避免重复创建, 判断 __ob__ 是否有值
   if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     ob = value.__ob__
   } else if (
@@ -120,6 +131,7 @@ export function observe(
     Object.isExtensible(value) &&
     !value.__v_skip /* ReactiveFlags.SKIP */
   ) {
+    // 创建新的实例
     ob = new Observer(value, shallow, ssrMockReactivity)
   }
   return ob
@@ -153,12 +165,15 @@ export function defineReactive(
     val = obj[key]
   }
 
+  // 如果当前val是对象, 则需要递归处理
   let childOb = !shallow && observe(val, false, mock)
+  // 属性拦截
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter() {
       const value = getter ? getter.call(obj) : val
+      // 依赖收集
       if (Dep.target) {
         if (__DEV__) {
           dep.depend({
@@ -180,6 +195,7 @@ export function defineReactive(
     },
     set: function reactiveSetter(newVal) {
       const value = getter ? getter.call(obj) : val
+      // 比较值是否发生变化
       if (!hasChanged(value, newVal)) {
         return
       }
@@ -197,6 +213,8 @@ export function defineReactive(
       } else {
         val = newVal
       }
+      // 设置的新值是一个对象
+      // 则仍需要做一个递归响应式处理
       childOb = !shallow && observe(newVal, false, mock)
       if (__DEV__) {
         dep.notify({
@@ -207,6 +225,7 @@ export function defineReactive(
           oldValue: value
         })
       } else {
+        // 通知更新
         dep.notify()
       }
     }
@@ -254,7 +273,7 @@ export function set(
     __DEV__ &&
       warn(
         'Avoid adding reactive properties to a Vue instance or its root $data ' +
-          'at runtime - declare it upfront in the data option.'
+        'at runtime - declare it upfront in the data option.'
       )
     return val
   }
@@ -297,7 +316,7 @@ export function del(target: any[] | object, key: any) {
     __DEV__ &&
       warn(
         'Avoid deleting properties on a Vue instance or its root $data ' +
-          '- just set it to null.'
+        '- just set it to null.'
       )
     return
   }
