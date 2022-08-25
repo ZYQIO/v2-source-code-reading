@@ -57,9 +57,15 @@ Vue.prototype.$mount = function (el) {
     const parent = document.querySelector(el);
     // 2 获取data
     // const data = this._data;
-    // 3. 数据出来之后渲染node, 追加到父节点中
-    const node = this.$options.render.call(this)
-    parent.appendChild(node)
+
+    const updateComponent = () => {
+        // 3. 数据出来之后渲染node, 追加到父节点中
+        const node = this.$options.render.call(this)
+        parent.appendChild(node)
+    }
+
+    // 创建 Watcher 实例, 作为组件渲染 Watcher
+    new Watcher(vm, updateComponent)
 }
 
 // 用于代理指定对象的某个 key 到 sourceKey
@@ -77,12 +83,17 @@ function proxy(target, sourceKey, key) {
 // 将传入的obj, key 做拦截, 从而实现响应式
 function defineReactive(obj, key, val = {}) {
 
+    const dep = new Dep()
+
     // 递归处理
     observe(val)
 
     Object.defineProperty(obj, key, {
         get() {
             console.log('get', key);
+            if (Dep.target) {
+                dep.depend()
+            }
             return val;
         },
         set(newVal) {
@@ -121,6 +132,7 @@ class Observer {
             writable: true,
             configurable: true
         })
+
         if (Array.isArray(value)) {
             // array
         } else {
@@ -141,3 +153,49 @@ class Observer {
     }
 }
 
+
+class Watcher {
+    constructor(vm, expOrFun) {
+        this.vm = vm;
+        this.getter = expOrFun;
+        // 立刻触发getter函数执行
+        this.get()
+    }
+
+    get() {
+        // 0. 设置依赖目标
+        Dep.target = this;
+        const vm = this.vm;
+        // 1. 调用getter函数
+        try {
+            this.getter.call(vm, vm)
+        } catch (error) {
+            throw error
+        } finally {
+            // 执行结束, 还原依赖目标为空, 防止重复添加
+            Dep.target = undefined
+        }
+    }
+
+    addDep(dep) {
+        this.newDeps.push(dep)
+    }
+}
+
+let uid = 0
+class Dep {
+    constructor() {
+        this.id = uid++;
+        this.subs = []
+    }
+
+    // 通知watch添加自己
+    // 简历当前dep和wathcer之间的关系
+    depend() {
+        Dep.target.addDep(this)
+    }
+
+    addSub(watcher) {
+        this.subs.push(watcher)
+    }
+}

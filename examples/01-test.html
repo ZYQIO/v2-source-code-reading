@@ -14,7 +14,10 @@
       new Vue({
         data() {
           return {
-            foo: 'foo'
+            foo: 'foo',
+            test: {
+              bar: 'bar'
+            }
           }
         },
         created() {
@@ -28,9 +31,9 @@
         }
       }).$mount('#app')
 
-      const obj = { foo: { bar: 'bar' } }
+      // const obj = { foo: { bar: 'bar' } }
 
-      defineReactive(obj, 'foo', obj['foo'])
+      // defineReactive(obj, 'foo', obj['foo'])
 
       // // obj.foo.bar
       // console.log(obj.foo.bar)
