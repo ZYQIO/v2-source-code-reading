@@ -59,13 +59,16 @@ Vue.prototype.$mount = function (el) {
     // const data = this._data;
 
     const updateComponent = () => {
+        // 先清空宿主
+        parent.innerHTML = ''
+
         // 3. 数据出来之后渲染node, 追加到父节点中
         const node = this.$options.render.call(this)
         parent.appendChild(node)
     }
 
     // 创建 Watcher 实例, 作为组件渲染 Watcher
-    new Watcher(vm, updateComponent)
+    new Watcher(this, updateComponent)
 }
 
 // 用于代理指定对象的某个 key 到 sourceKey
@@ -91,6 +94,7 @@ function defineReactive(obj, key, val = {}) {
     Object.defineProperty(obj, key, {
         get() {
             console.log('get', key);
+            // 测试依赖收集目标是否存在
             if (Dep.target) {
                 dep.depend()
             }
@@ -99,6 +103,8 @@ function defineReactive(obj, key, val = {}) {
         set(newVal) {
             val = newVal
             console.log('set', key);
+            // 变更通知
+            dep.notify()
         }
     })
 }
@@ -158,6 +164,11 @@ class Watcher {
     constructor(vm, expOrFun) {
         this.vm = vm;
         this.getter = expOrFun;
+
+        // 保存管理的所有deps
+        this.newDepIds = new Set()
+        this.newDeps = []
+
         // 立刻触发getter函数执行
         this.get()
     }
@@ -178,7 +189,19 @@ class Watcher {
     }
 
     addDep(dep) {
-        this.newDeps.push(dep)
+        const id = dep.id;
+
+        if (!this.newDepIds.has(id)) {
+            this.newDepIds.add(id)
+            this.newDeps.push(dep)
+
+            // 反过来将自己添加到dep中
+            dep.addSub(this)
+        }
+    }
+
+    update() {
+        this.get()
     }
 }
 
@@ -190,12 +213,18 @@ class Dep {
     }
 
     // 通知watch添加自己
-    // 简历当前dep和wathcer之间的关系
+    // 从而建立当前dep和wathcer之间的关系
     depend() {
         Dep.target.addDep(this)
     }
 
     addSub(watcher) {
         this.subs.push(watcher)
+    }
+
+    notify() {
+        for (const sub of this.subs) {
+            sub.update()
+        }
     }
 }
