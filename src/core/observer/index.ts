@@ -281,6 +281,7 @@ export function set(
     target[key] = val
     return val
   }
+  // 给动态设置的属性做拦截处理
   defineReactive(ob.value, key, val, undefined, ob.shallow, ob.mock)
   if (__DEV__) {
     ob.dep.notify({
@@ -291,6 +292,7 @@ export function set(
       oldValue: undefined
     })
   } else {
+    // 通知关联依赖目标执行更新
     ob.dep.notify()
   }
   return val
@@ -329,6 +331,7 @@ export function del(target: any[] | object, key: any) {
     return
   }
   delete target[key]
+  // 变更通知
   if (!ob) {
     return
   }
@@ -347,6 +350,7 @@ export function del(target: any[] | object, key: any) {
  * Collect dependencies on array elements when the array is touched, since
  * we cannot intercept array element access like property getters.
  */
+// 将数组中所有元素, 甚至内部嵌套数组都做一遍依赖收集
 function dependArray(value: Array<any>) {
   for (let e, i = 0, l = value.length; i < l; i++) {
     e = value[i]

@@ -6,6 +6,8 @@
 import { TriggerOpTypes } from '../../v3'
 import { def } from '../util/index'
 
+// 获取原始的数组原型
+// 复制一份到 arrayMethods
 const arrayProto = Array.prototype
 export const arrayMethods = Object.create(arrayProto)
 
@@ -22,11 +24,15 @@ const methodsToPatch = [
 /**
  * Intercept mutating methods and emit events
  */
+// 扩展7个变更方法, 使他么具有变更通知能力
 methodsToPatch.forEach(function (method) {
   // cache original method
+  // 获取原始操作函数
   const original = arrayProto[method]
   def(arrayMethods, method, function mutator(...args) {
+    // 执行原来的操作
     const result = original.apply(this, args)
+    // 后面就是变更通知的实现
     const ob = this.__ob__
     let inserted
     switch (method) {

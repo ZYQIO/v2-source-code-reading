@@ -88,15 +88,43 @@ function defineReactive(obj, key, val = {}) {
 
     const dep = new Dep()
 
+    // console.log('obj, key,', obj, key)
+    // console.log('dep key', dep, '-->', key);
+
     // 递归处理
-    observe(val)
+    const childOb = observe(val)
 
     Object.defineProperty(obj, key, {
         get() {
-            console.log('get', key);
+            console.log('get', key, 'dep', dep);
+            console.log('Dep.target', Dep.target);
+
             // 测试依赖收集目标是否存在
             if (Dep.target) {
                 dep.depend()
+
+                console.log('dep key', key, dep, 'childOb', childOb);
+                // console.log('Dep.target', Dep.target);
+
+                // 嵌套对象的Observer实例中的dep也要和watcher建立依赖关系
+                if (childOb) {
+                    childOb.dep.depend()
+                    // // console.log('childOb dep', childOb.dep.subs);
+                    // // 对数组做额外的依赖收集
+                    if (Array.isArray(val)) {
+                        dependArray(val)
+                        // for (const item of val) {
+                        //     if (item && item.__ob__) {
+                        //         // 这一项是响应式对象, 则对其伴生的ob内部的dep做依赖收集
+                        //         item.__ob__.dep.depend()
+                        //     }
+                        //     // 如果当前item又是数组, 向下递归
+                        //     if (Array.isArray(item)) {
+                        //         dependArray(item)
+                        //     }
+                        // }
+                    }
+                }
             }
             return val;
         },
@@ -109,6 +137,19 @@ function defineReactive(obj, key, val = {}) {
     })
 }
 
+// 数组内所有对象都需要做依赖收集
+function dependArray(items) {
+    for (const item of items) {
+        if (item && item.__ob__) {
+            // 这一项是响应式对象, 则对其伴生的ob内部的dep做依赖收集
+            item.__ob__.dep.depend()
+        }
+        // 如果当前item又是数组, 向下递归
+        if (Array.isArray(item)) {
+            dependArray(item)
+        }
+    }
+}
 
 function observe(obj) {
     // 传入的必须是对象
@@ -122,7 +163,7 @@ function observe(obj) {
     if (Object.prototype.hasOwnProperty.call(obj, '__ob__')) {
         ob = value.__ob__;
     } else {
-        new Observer(obj)
+        ob = new Observer(obj)
     }
 
     return ob;
@@ -131,6 +172,9 @@ function observe(obj) {
 
 class Observer {
     constructor(value) {
+        // 创建一个伴生的Dep实例
+        this.dep = new Dep()
+
         // 定义 __ob__ 属性
         Object.defineProperty(value, '__ob__', {
             value: this,
@@ -141,9 +185,19 @@ class Observer {
 
         if (Array.isArray(value)) {
             // array
+            // 覆盖数组实例的原型
+            value.__proto__ = arrayMethods
+            // 对当前数组实例做响应式
+            this.observeArray(value)
         } else {
             // Object
             this.walk(value)
+        }
+    }
+
+    observeArray(items) {
+        for (const item of items) {
+            observe(item)
         }
     }
 
@@ -228,3 +282,97 @@ class Dep {
         }
     }
 }
+
+
+// 全局注册api
+Vue.set = set
+Vue.del = del
+
+// 实例api
+Vue.prototype.$set = set
+Vue.prototype.$delete = del
+
+
+function set(obj, key, val) {
+    // 如果是数组的话
+    if (Array.isArray(obj)) {
+        // 获取key和length之间的较大者, 并对length扩容
+        obj.length = Math.max(obj.length, key)
+        obj.splice(key, 1, val)
+        // 由于splice操作会自动通知更新, 因此直接退出
+        return val
+    }
+    const ob = obj.__ob__;
+
+    if (!ob) {
+        obj[key] = val
+    } else {
+        // 1. 设置动态属性拦截
+        defineReactive(obj, key, val)
+        // 2. 变更通知
+        ob.dep.notify()
+    }
+}
+
+function del(obj, key) {
+    // 数组直接删除元素并退出
+    if (Array.isArray(obj)) {
+        obj.splice(key, 1)
+        return
+    }
+    const ob = obj.__ob__;
+    delete obj[key]
+    if (ob) {
+        ob.dep.notify()
+    }
+}
+
+// 获取数组原型, 做一份克隆
+const arrayProto = Array.prototype
+const arrayMethods = Object.create(arrayProto)
+// 列出7个变更方法
+const methodsToPatch = [
+    'push',
+    'pop',
+    'shift',
+    'unshift',
+    'splice',
+    'sort',
+    'reverse'
+]
+// 扩展这7个方法, 使之能够做变更通知
+methodsToPatch.forEach(function (method) {
+    // 原始方法
+    const original = arrayProto[method]
+    // 覆盖原始函数
+    Object.defineProperty(arrayMethods, method, {
+        value: function (...args) {
+            // 执行原始操作
+            const result = original.apply(this, args)
+            // 扩展: 增加变更通知能力
+            const ob = this.__ob__
+            // 判断是否有新元素进来
+            let inserted
+            switch (method) {
+                case 'push':
+                case 'unshift':
+                    inserted = args
+                    break;
+                case 'splice':
+                    inserted = args.slice()
+            }
+
+            if (inserted) {
+                // 对它执行响应式处理
+                ob.observeArray(inserted)
+            }
+            // 变更通知
+            ob.dep.notify()
+            return result
+        }
+    })
+
+
+})
+
+

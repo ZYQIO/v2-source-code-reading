@@ -40,7 +40,7 @@ Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
 ): Component {
-  // 查询宿主元素
+  // 查询宿主元素, 平台所特有的查询宿主元素
   el = el && inBrowser ? query(el) : undefined
   // 实际调用是 mountComponent
   return mountComponent(this, el, hydrating)

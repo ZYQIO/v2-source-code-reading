@@ -7,7 +7,12 @@
     <title>Document</title>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- <span>{{ counter }}</span>
+      <span>{{ counter }}</span>
+      <span>{{ foo }}</span> -->
+      <!-- <p v-for="item in arr" :key="item">{{ item }}</p> -->
+    </div>
     <script src="./vue.js"></script>
 
     <script>
@@ -15,28 +20,26 @@
         data() {
           return {
             foo: 'foo',
+            counter: 1,
             test: {
               bar: 'bar'
-            }
+            },
+            // baz: {},
+            arr: [1, 2, 3, { baz: 'baz' }]
           }
         },
         created() {
-          console.log('created')
+          console.log('created', this.arr, this.test)
           setTimeout(() => {
-            this.foo = 'bar'
-          }, 1000)
+            // this.arr = [2,3]
+            this.arr.push(4)
+            // console.log('this.arr', this.arr)
+          }, 3000)
         },
         render() {
-          return document.createTextNode(this.foo)
+          return document.createTextNode(this.arr.join())
         }
       }).$mount('#app')
-
-      // const obj = { foo: { bar: 'bar' } }
-
-      // defineReactive(obj, 'foo', obj['foo'])
-
-      // // obj.foo.bar
-      // console.log(obj.foo.bar)
     </script>
   </body>
 </html>
