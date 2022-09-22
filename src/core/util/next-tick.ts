@@ -93,6 +93,7 @@ export function nextTick<T>(cb: (this: T, ...args: any[]) => any, ctx: T): void
  */
 export function nextTick(cb?: (...args: any[]) => any, ctx?: object) {
   let _resolve
+  // 将cb放入callbacks数组
   callbacks.push(() => {
     if (cb) {
       try {
@@ -106,6 +107,7 @@ export function nextTick(cb?: (...args: any[]) => any, ctx?: object) {
   })
   if (!pending) {
     pending = true
+    // 异步启动
     timerFunc()
   }
   // $flow-disable-line

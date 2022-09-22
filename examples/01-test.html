@@ -29,10 +29,13 @@
           }
         },
         created() {
-          console.log('created', this.arr, this.test)
+          // console.log('created', this.arr, this.test)
           setTimeout(() => {
-            // this.arr = [2,3]
+            // this.arr = [2, 3]
+            this.$delete(this.arr, 3)
             this.arr.push(4)
+            // this.test.bar = '456'
+            // this.test = { tl: '123' }
             // console.log('this.arr', this.arr)
           }, 3000)
         },

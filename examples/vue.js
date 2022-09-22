@@ -108,11 +108,17 @@ function defineReactive(obj, key, val = {}) {
 
                 // 嵌套对象的Observer实例中的dep也要和watcher建立依赖关系
                 if (childOb) {
+                    // 专门针对于数组场景的依赖收集, 如果对象中key通过指针指向的数组内容有变化,
+                    // 则需要专门收集一个单独的依赖, 方便数组内容有变化时, 做处理更新
                     childOb.dep.depend()
                     // // console.log('childOb dep', childOb.dep.subs);
                     // // 对数组做额外的依赖收集
+                    // 这里则是针对于数组中, 嵌套了对象或另外的数组等复杂数据做依赖收集, 用于视图更新
+                    // *暂时没有想到太好的业务场景进行验证这里的东西
                     if (Array.isArray(val)) {
                         dependArray(val)
+
+                        // dependArray 函数中的逻辑, 放在这里方便理解
                         // for (const item of val) {
                         //     if (item && item.__ob__) {
                         //         // 这一项是响应式对象, 则对其伴生的ob内部的dep做依赖收集
@@ -213,9 +219,10 @@ class Observer {
     }
 }
 
-
+let wid = 0
 class Watcher {
     constructor(vm, expOrFun) {
+        this.id = ++wid;
         this.vm = vm;
         this.getter = expOrFun;
 
@@ -255,8 +262,74 @@ class Watcher {
     }
 
     update() {
+        // this.get()
+        // 异步更新
+        // 排队
+        queueWatcher(this)
+    }
+
+    run() {
         this.get()
     }
+}
+
+const queue = [] // 存放待执行的 watcher
+const has = {}
+let waiting = false
+function queueWatcher(watcher) {
+    const id = watcher.id;
+    // 去重, 
+    if (has[id] != null) {
+        return
+    }
+    // 不存在才入队
+    queue.push(watcher)
+    if (!waiting) {
+        waiting = true
+        // 异步执行 flushScheduleQueue
+        nextTick(flushScheduleQueue)
+    }
+}
+
+const callbacks = [] // 用于存放异步任务
+let pending = false;
+const timeFunc = () => Promise.resolve().then(flushCallbacks)
+function nextTick(cb) {
+    // 1. 将cb存入callbscks数组中
+    callbacks.push(cb)
+
+    if (!pending) {
+        pending = true
+        // 异步启动
+        timeFunc()
+    }
+}
+
+function flushCallbacks() {
+    pending = false
+    // 先备份, 防止正在执行任务时, 还有任务进入队列, 先进行一次快照
+    const copies = callbacks.slice(0)
+    callbacks.length = 0
+    for (const cb of copies) {
+        cb()
+    }
+}
+
+let flushing = false
+function flushScheduleQueue() {
+    let id;
+    flushing = true
+    for (const watcher of queue) {
+        // 去掉 id , 去重失效了
+        id = watcher.id
+        has[id] = null
+        // 真正的更新函数调用
+        watcher.run()
+    }
+
+    // 还原状态
+    flushing = waiting = false
+
 }
 
 let uid = 0
