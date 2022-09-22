@@ -54,7 +54,8 @@ function callHook(vm, hook) {
 
 Vue.prototype.$mount = function (el) {
     // 1. 找到parent
-    const parent = document.querySelector(el);
+    // const parent = document.querySelector(el);
+    this.$el = document.querySelector(el);
     // 2 获取data
     // const data = this._data;
 
@@ -63,12 +64,128 @@ Vue.prototype.$mount = function (el) {
         parent.innerHTML = ''
 
         // 3. 数据出来之后渲染node, 追加到父节点中
-        const node = this.$options.render.call(this)
-        parent.appendChild(node)
+        // const node = this.$options.render.call(this)
+        // parent.appendChild(node)
+
+        // VNode实现
+        const vnode = this.$options.render.call(this, this.$createElement)
+        console.log('vnode', vnode);
+        // createElm(vnode, parent)
+        this._update(vnode)
     }
 
     // 创建 Watcher 实例, 作为组件渲染 Watcher
     new Watcher(this, updateComponent)
+}
+
+Vue.prototype._update = function (vnode) {
+    // 获取上一次的vnode
+    const preVnode = this._vnode
+    // 保存最新的vnode
+    this._vnode = vnode
+    if (!preVnode) {
+        // init
+        this.patch(this.$el, vnode)
+    } else {
+        // update
+        this.patch(preVnode, vnode)
+    }
+}
+
+Vue.prototype.patch = function (oldVnode, vnode) {
+    // 如果是真实的dom, 就走初始化
+    if (oldVnode.nodeType) {
+        createElm(vnode, oldVnode)
+    } else {
+        // 否则就是更新流程, 对比新老vnode, 进行diff
+        patchVnode(oldVnode, vnode)
+    }
+}
+
+function patchVnode(oldVnode, vnode) {
+    console.log('oldVnode, vnode', oldVnode, vnode);
+    // 更新的目标dom
+    const elm = vnode.elm = oldVnode.elm
+    // 获取双方的子元素
+    const oldCh = oldVnode.children
+    const ch = vnode.children
+
+    if (isUndef(vnode.text)) {
+        if (isDef(ch) && isDef(oldCh)) {
+            // 新老都有子元素
+            // diff 比对传入的子元素
+            updateChildren()
+        }
+    } else if (oldVnode.text !== vnode.text) {
+        // 都有文本且不相等
+        elm.textContent = vnode.text;
+    }
+}
+
+function updateChildren(parentElm, oldCh, newCh) {
+    // 后续待补齐相关代码
+}
+
+function isUndef(v) {
+    return v === undefined || v === null
+}
+
+function isDef(v) {
+    return v !== undefined && v !== null
+}
+
+// 递归遍历vnode, 创建dom树, 添加到parentElm
+function createElm(vnode, parentElm) {
+    // 1. 先获取tag并创建元素
+    const tag = vnode.tag
+
+    // 2. 获取children情况, 递归处理
+    const children = vnode.children;
+
+    // 3. 处理属性
+    const data = vnode.data
+
+    if (tag) {
+        // element
+        vnode.elm = document.createElement(tag)
+        // 先递归处理子元素
+        if (typeof children === 'string') {
+            // 文本情况
+            createElm({ text: children }, vnode.elm)
+        } else if (Array.isArray(children)) {
+            // 若干子元素
+            for (const child of children) {
+                createElm(child, vnode.elm)
+            }
+        }
+
+        // 处理元素的属性
+        if (data) {
+            // 对元素做 setAttribute
+            if (data.attrs) {
+                for (const attr in data.attrs) {
+                    vnode.elm.setAttribute(attr, data.attrs[attr])
+                }
+            }
+        }
+
+        parentElm.appendChild(vnode.elm)
+    } else {
+        // text
+        vnode.elm = document.createTextNode(vnode.text)
+        parentElm.appendChild(vnode.elm)
+    }
+}
+
+Vue.prototype.$createElement = (tag, data, children) => {
+    // 根据tag处理元素和文本两种情况
+    if (tag) {
+        // element
+        return { tag, data, children }
+    } else {
+        // text
+        return { text: data }
+    }
 }
 
 // 用于代理指定对象的某个 key 到 sourceKey

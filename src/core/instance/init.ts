@@ -64,7 +64,7 @@ export function initMixin(Vue: typeof Component) {
     callHook(vm, 'beforeCreate', undefined, false /* setContext */) // 首次调用钩子beforeCreate
     // 初始化组件的状态, 祖辈注入 provide/inject.
     initInjections(vm) // resolve injections before data/props
-    initState(vm) // 组件本身状态: props, data, methods, watch, computed
+    initState(vm) // 组件本身状态: props, methods, data, computed, watch
     initProvide(vm) // resolve provide after data/props
     callHook(vm, 'created')
 

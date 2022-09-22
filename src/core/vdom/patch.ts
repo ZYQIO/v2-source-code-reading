@@ -141,6 +141,7 @@ export function createPatchFunction(backend) {
       return
     }
 
+    // 获取节点关键数据
     const data = vnode.data
     const children = vnode.children
     const tag = vnode.tag
@@ -152,21 +153,25 @@ export function createPatchFunction(backend) {
         if (isUnknownElement(vnode, creatingElmInVPre)) {
           warn(
             'Unknown custom element: <' +
-              tag +
-              '> - did you ' +
-              'register the component correctly? For recursive components, ' +
-              'make sure to provide the "name" option.',
+            tag +
+            '> - did you ' +
+            'register the component correctly? For recursive components, ' +
+            'make sure to provide the "name" option.',
             vnode.context
           )
         }
       }
-
+      
+      // 创建元素节点
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode)
       setScope(vnode)
 
+      // 递归处理子节点
       createChildren(vnode, children, insertedVnodeQueue)
+
+      // 如果节点有data数据, 则执行属性, 特性, 事件, 样式等的处理流程
       if (isDef(data)) {
         invokeCreateHooks(vnode, insertedVnodeQueue)
       }
@@ -289,7 +294,9 @@ export function createPatchFunction(backend) {
     return isDef(vnode.tag)
   }
 
+  // 处理元素的属性
   function invokeCreateHooks(vnode, insertedVnodeQueue) {
+    // cbs是一个对象：{create: [], update: []}
     for (let i = 0; i < cbs.create.length; ++i) {
       cbs.create[i](emptyNode, vnode)
     }
@@ -791,7 +798,7 @@ export function createPatchFunction(backend) {
         vnode.tag.indexOf('vue-component') === 0 ||
         (!isUnknownElement(vnode, inVPre) &&
           vnode.tag.toLowerCase() ===
-            (node.tagName && node.tagName.toLowerCase()))
+          (node.tagName && node.tagName.toLowerCase()))
       )
     } else {
       return node.nodeType === (vnode.isComment ? 8 : 3)
@@ -815,8 +822,10 @@ export function createPatchFunction(backend) {
       const isRealElement = isDef(oldVnode.nodeType)
       if (!isRealElement && sameVnode(oldVnode, vnode)) {
         // patch existing root node
+        // 更新流程走这里
         patchVnode(oldVnode, vnode, insertedVnodeQueue, null, null, removeOnly)
       } else {
+        // 初始化流程走这里
         if (isRealElement) {
           // mounting to a real element
           // check if this is server-rendered content and if we can perform
@@ -832,10 +841,10 @@ export function createPatchFunction(backend) {
             } else if (__DEV__) {
               warn(
                 'The client-side rendered virtual DOM tree is not matching ' +
-                  'server-rendered content. This is likely caused by incorrect ' +
-                  'HTML markup, for example nesting block-level elements inside ' +
-                  '<p>, or missing <tbody>. Bailing hydration and performing ' +
-                  'full client-side render.'
+                'server-rendered content. This is likely caused by incorrect ' +
+                'HTML markup, for example nesting block-level elements inside ' +
+                '<p>, or missing <tbody>. Bailing hydration and performing ' +
+                'full client-side render.'
               )
             }
           }
@@ -849,6 +858,7 @@ export function createPatchFunction(backend) {
         const parentElm = nodeOps.parentNode(oldElm)
 
         // create new node
+        // 初始化创建
         createElm(
           vnode,
           insertedVnodeQueue,
